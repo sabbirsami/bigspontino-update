@@ -5,7 +5,6 @@ import RevealText from '@/components/animation/text/RevealText';
 import DownArrowIcon from '@/components/icons/DownArrowIcon';
 import InstagramIcon from '@/components/icons/InstagramIcon';
 import PlusIcon from '@/components/icons/PlusIcon';
-import BookingModal from '@/components/shared/popup/BookingModal';
 import {
   Sheet,
   SheetContent,
@@ -27,98 +26,12 @@ const Navbar = () => {
   const [isLanguageSheetOpen, setIsLanguageSheetOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isBookingLoading, setIsBookingLoading] = useState(false);
 
-  // Booking sheet state (changed from modal to sheet)
-  const [isBookingSheetOpen, setIsBookingSheetOpen] = useState(false);
-  const [isWidgetLoading, setIsWidgetLoading] = useState(true);
-  const [widgetLoadError, setWidgetLoadError] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const widgetContainerRef = useRef<HTMLDivElement>(null);
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Booking modal state
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const pathname = usePathname();
   const { t, i18n, ready } = useTranslation();
 
-  // Function to retry widget loading
-  const retryWidgetLoading = () => {
-    setWidgetLoadError(false);
-    setIsWidgetLoading(true);
-    setProgress(0);
 
-    // Start progress animation
-    progressIntervalRef.current = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) {
-          if (progressIntervalRef.current) {
-            clearInterval(progressIntervalRef.current);
-          }
-          return 90;
-        }
-        return prev + 10;
-      });
-    }, 100);
-
-    // Initialize widget
-    if (widgetContainerRef.current) {
-      // Clear any existing content
-      widgetContainerRef.current.innerHTML = '<div id="quandoo-booking-widget"></div>';
-
-      // Remove any existing script to prevent duplicates
-      const existingScript = document.querySelector(
-        'script[src="https://booking-widget.quandoo.com/index.js"]',
-      );
-      if (existingScript) {
-        existingScript.remove();
-      }
-
-      // Create and configure the script
-      const script = document.createElement('script');
-      script.src = 'https://booking-widget.quandoo.com/index.js';
-      script.setAttribute('data-merchant-id', '107538');
-      script.setAttribute('data-theme', 'light');
-      script.setAttribute('data-primary-color', '1870C3');
-
-      script.onload = () => {
-        setIsWidgetLoading(false);
-        setProgress(100);
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-        if (loadingTimeoutRef.current) {
-          clearTimeout(loadingTimeoutRef.current);
-        }
-      };
-
-      script.onerror = () => {
-        console.error('Failed to load booking widget');
-        setIsWidgetLoading(false);
-        setWidgetLoadError(true);
-        setProgress(100);
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-      };
-
-      // Append script to head
-      document.head.appendChild(script);
-
-      // Set a timeout for widget loading
-      loadingTimeoutRef.current = setTimeout(() => {
-        console.error('Booking widget loading timeout');
-        setIsWidgetLoading(false);
-        setWidgetLoadError(true);
-        setProgress(100);
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-        }
-      }, 5000); // 5 second timeout
-    }
-  };
 
   useEffect(() => {
     setMounted(true);
@@ -130,70 +43,6 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Booking sheet effect (updated to work with Sheet component)
-  useEffect(() => {
-    if (isBookingSheetOpen) {
-      document.body.style.overflow = 'hidden';
-
-      // Small delay to ensure Sheet content is mounted before loading widget
-      const timeoutId = setTimeout(() => {
-        retryWidgetLoading();
-      }, 200);
-
-      return () => {
-        clearTimeout(timeoutId);
-      };
-    } else {
-      document.body.style.overflow = 'unset';
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-
-      // Clean up the widget when sheet closes
-      if (widgetContainerRef.current) {
-        widgetContainerRef.current.innerHTML = '';
-      }
-
-      // Remove the script tag
-      const scriptTag = document.querySelector(
-        'script[src="https://booking-widget.quandoo.com/index.js"]',
-      );
-      if (scriptTag) {
-        scriptTag.remove();
-      }
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
-
-      // Clean up the widget on component unmount
-      if (widgetContainerRef.current) {
-        widgetContainerRef.current.innerHTML = '';
-      }
-
-      // Remove the script tag on unmount
-      const scriptTag = document.querySelector(
-        'script[src="https://booking-widget.quandoo.com/index.js"]',
-      );
-      if (scriptTag) {
-        scriptTag.remove();
-      }
-    };
-  }, [isBookingSheetOpen]);
 
   const changeLanguage = async (languageCode: string) => {
     if (i18n && typeof i18n.changeLanguage === 'function') {
@@ -213,14 +62,9 @@ const Navbar = () => {
     });
   };
 
-  // Handle booking button click (updated to open sheet)
+  // Handle booking button click - direct redirect to OpenTable
   const handleBookTable = () => {
-    setIsBookingLoading(true);
-    setIsBookingSheetOpen(true);
-    // Reset loading state after a short delay
-    setTimeout(() => {
-      setIsBookingLoading(false);
-    }, 500);
+    window.open('https://www.opentable.de/restref/client/?restref=441969', '_blank');
   };
 
   const isI18nReady = mounted && ready && i18n;
@@ -320,7 +164,7 @@ const Navbar = () => {
                   >
                     <motion.button
                       onClick={() => {
-                        setIsBookingModalOpen(true);
+                        handleBookTable();
                         setIsOpen(false);
                       }}
                       className="group relative inline-flex h-12 sm:h-14 items-center cursor-pointer justify-center overflow-hidden rounded-none font-medium"
@@ -546,28 +390,27 @@ const Navbar = () => {
           <div className="hidden sm:block">
             <motion.button
               onClick={handleBookTable}
-              disabled={isBookingLoading}
-              className="group relative inline-flex h-8 sm:h-9 md:h-10 items-center cursor-pointer justify-center overflow-hidden rounded-none font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative inline-flex h-8 sm:h-9 md:h-10 items-center cursor-pointer justify-center overflow-hidden rounded-none font-medium"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              whileHover={{ scale: isBookingLoading ? 1 : 1.02 }}
-              whileTap={{ scale: isBookingLoading ? 1 : 0.98 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               <div className="inline-flex h-8 sm:h-9 md:h-10 translate-y-0 items-center justify-center bg-primary text-sm sm:text-lg md:text-xl lg:text-2xl px-3 sm:px-4 md:px-6 text-white transition group-hover:-translate-y-[150%] rounded-none">
                 <span className="hidden sm:inline">
-                  {isBookingLoading ? 'Loading...' : t('buttons.bookTable') || 'Book A Table'}
+                  {t('buttons.bookTable') || 'Book A Table'}
                 </span>
                 <span className="sm:hidden">
-                  {isBookingLoading ? '...' : t('buttons.book') || 'Book'}
+                  {t('buttons.book') || 'Book'}
                 </span>
               </div>
               <div className="absolute inline-flex h-8 sm:h-9 md:h-10 w-full translate-y-[100%] items-center justify-center text-sm sm:text-lg md:text-xl lg:text-2xl bg-background px-3 sm:px-4 md:px-6 text-secondary transition duration-300 group-hover:translate-y-0 rounded-none">
                 <span className="hidden sm:inline">
-                  {isBookingLoading ? 'Loading...' : t('buttons.bookTable') || 'Book A Table'}
+                  {t('buttons.bookTable') || 'Book A Table'}
                 </span>
                 <span className="sm:hidden">
-                  {isBookingLoading ? '...' : t('buttons.book') || 'Book'}
+                  {t('buttons.book') || 'Book'}
                 </span>
               </div>
             </motion.button>
@@ -579,22 +422,21 @@ const Navbar = () => {
         <div className="flex-1 ">
           <motion.button
             onClick={handleBookTable}
-            disabled={isBookingLoading}
-            className="group relative inline-flex h-11 md:h-11 items-center cursor-pointer justify-center overflow-hidden rounded-none font-medium w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            className="group relative inline-flex h-11 md:h-11 items-center cursor-pointer justify-center overflow-hidden rounded-none font-medium w-full"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            whileHover={{ scale: isBookingLoading ? 1 : 1.02 }}
-            whileTap={{ scale: isBookingLoading ? 1 : 0.98 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
             <div className="inline-flex h-11 md:h-11 translate-y-0 items-center justify-center bg-primary  px-3 sm:px-4 md:px-6 text-white transition group-hover:-translate-y-[150%] rounded-none w-full">
               <span className="">
-                {isBookingLoading ? 'Loading...' : t('buttons.bookTable') || 'Book A Table'}
+                {t('buttons.bookTable') || 'Book A Table'}
               </span>
             </div>
             <div className="absolute inline-flex h-11 md:h-11 w-full translate-y-[100%] items-center justify-center  bg-background px-3 sm:px-4 md:px-6 text-secondary transition duration-300 group-hover:translate-y-0 rounded-none">
               <span className="">
-                {isBookingLoading ? 'Loading...' : t('buttons.bookTable') || 'Book A Table'}
+                {t('buttons.bookTable') || 'Book A Table'}
               </span>
             </div>
           </motion.button>
@@ -616,90 +458,9 @@ const Navbar = () => {
         </motion.button>
       </div>
 
-      {/* Booking Sheet - Replaced modal with Sheet */}
-      <Sheet open={isBookingSheetOpen} onOpenChange={setIsBookingSheetOpen}>
-        <SheetContent
-          side="right"
-          className="w-full sm:w-[600px] text-white md:w-[700px] lg:w-[800px] p-0 rounded-none border-l-2 border-primary"
-        >
-          <div className="h-full flex flex-col">
-            {/* Header */}
-            <SheetHeader className="p-4 border-b border-gray-200 bg-primary flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <SheetTitle className="text-2xl font-semibold text-white">
-                  {t('buttons.bookTable') || 'Book A Table'}
-                </SheetTitle>
-              </div>
-              <SheetDescription></SheetDescription>
-            </SheetHeader>
 
-            {/* Content */}
-            <div className="relative flex-1 overflow-hidden">
-              {isWidgetLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background z-10">
-                  <div className="mb-4 text-xl font-semibold text-gray-800">
-                    <Image
-                      src="/assets/logo.png"
-                      alt="Big Spuntino - Authentic Italian Restaurant Hamburg"
-                      width={100}
-                      height={100}
-                      className="w-auto h-16 md:h-20 lg:h-24"
-                    />
-                  </div>
-                  <div className="w-full max-w-56 bg-gray-200 rounded-none h-[8px]">
-                    <div
-                      className="bg-primary h-[8px] rounded-none transition-all duration-500 ease-out"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-              {widgetLoadError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background z-10 p-6">
-                  <div className="text-center space-y-4">
-                    <div className="text-6xl">⚠️</div>
-                    <h3 className="text-xl font-semibold text-gray-800">
-                      {t('booking.widgetError') || 'Booking Widget Unavailable'}
-                    </h3>
-                    <p className="text-gray-600 max-w-md">
-                      {t('booking.widgetErrorMessage') ||
-                        "We're having trouble loading our booking system. Please try one of the alternatives below."}
-                    </p>
-                    <div className="space-y-3 pt-4">
-                      <button
-                        onClick={retryWidgetLoading}
-                        className="w-full px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-                      >
-                        {t('booking.tryAgain') || 'Try Again'}
-                      </button>
-                      <a
-                        href="tel:+4940123456789"
-                        className="block w-full px-4 py-2 border border-primary text-primary rounded hover:bg-primary/10 transition-colors text-center"
-                      >
-                        {t('booking.callToBook') || 'Call to Book: +49 40 123 456 789'}
-                      </a>
-                      <a
-                        href="mailto:reservations@bigspuntino.com"
-                        className="block w-full px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors text-center"
-                      >
-                        {t('booking.emailToBook') || 'Email: reservations@bigspuntino.com'}
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div
-                ref={widgetContainerRef}
-                className="w-full h-full"
-                style={{ minHeight: '400px' }}
-              />
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
 
-      {/* Booking Modal */}
-      <BookingModal isOpen={isBookingModalOpen} onClose={() => setIsBookingModalOpen(false)} />
+
     </>
   );
 };
